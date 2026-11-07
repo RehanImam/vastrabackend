@@ -59,11 +59,17 @@ export const createOrder = asyncHandler(async (req, res) => {
             throw new ApiError(404, `Product ${item.productId} not found`);
         }
 
-        // Check stock for the requested size
+        // Check size stock when a size was selected, otherwise check aggregate stock.
         const sizeStocks = product.sizeStock || [];
-        const sizeStock = sizeStocks.find((stock) => stock.size === item.size);
-        if (sizeStocks.length > 0 && (!sizeStock || sizeStock.quantity < item.quantity)) {
-            throw new ApiError(400, `Insufficient stock for ${product.productName} in size ${item.size}`);
+        if (sizeStocks.length > 0) {
+            if (item.size) {
+                const sizeStock = sizeStocks.find((stock) => stock.size === item.size);
+                if (!sizeStock || sizeStock.quantity < item.quantity) {
+                    throw new ApiError(400, `Insufficient stock for ${product.productName} in size ${item.size}`);
+                }
+            } else if (product.totalQuantity < item.quantity) {
+                throw new ApiError(400, `Insufficient stock for ${product.productName}`);
+            }
         }
 
         const unitPrice = product.price;
@@ -75,7 +81,7 @@ export const createOrder = asyncHandler(async (req, res) => {
             productName: product.productName,
             price: unitPrice,
             quantity: item.quantity,
-            size: item.size,
+            ...(item.size ? { size: item.size } : {}),
             totalPrice,
             productUrl: product.url,
         });

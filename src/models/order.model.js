@@ -22,7 +22,6 @@ const orderItemSchema = new Schema({
     size: {
         type: String,
         enum: ["S", "M", "L", "XL", "XXL"],
-        required: true,
     },
     totalPrice: {
         type: Number,
