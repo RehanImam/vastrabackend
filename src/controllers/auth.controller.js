@@ -6,6 +6,11 @@ import { asyncHandler } from "../utils/async-handler.js";
 import jwt from "jsonwebtoken";
 import { forgotPasswordMailGenContent, sendMail, emailVerificationMailGenContent, resendVerificationMailGenContent, emailChangeVerificationMailGenContent } from "../utils/mail.js";
 
+const FRONTEND_URL = (
+    process.env.FRONTEND_URL ||
+    (process.env.NODE_ENV === "production" ? "https://vastrafrontend.vercel.app" : "http://localhost:3000")
+).replace(/\/+$/, "");
+
 // --- Helper: generate access + refresh tokens and save refresh token to DB ---
 const generateAccessAndRefreshTokens = async (userId) => {
     try {
@@ -69,7 +74,7 @@ const registerUser = asyncHandler(async (req, res) => {
     // 4. Save the user to the database
     await user.save();
     // --- MAIL INTEGRATION START ---
-    const verificationUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/verify-email/${unHashedToken}`;
+    const verificationUrl = `${FRONTEND_URL}/verify-email/${unHashedToken}`;
 
     const mailResult = await sendMail({
         email: user.email,
@@ -297,7 +302,7 @@ const forgotPasswordRequest = asyncHandler(async (req, res) => {
     await user.save({ validateBeforeSave: false });
 
     // --- MAIL INTEGRATION START ---
-    const passwordResetUrl = `${process.env.FRONTEND_URL}/reset-password/${unHashedToken}`;
+    const passwordResetUrl = `${FRONTEND_URL}/reset-password/${unHashedToken}`;
 
     await sendMail({
         email: user.email,
@@ -396,13 +401,11 @@ const handleGoogleCallback = asyncHandler(async (req, res) => {
         await generateAccessAndRefreshTokens(user._id);
 
     // Redirect to the frontend; the HTTP-only cookies carry the session.
-    const frontendURL = process.env.FRONTEND_URL || "http://localhost:3000";
-
     return res
         .status(200)
         .cookie("accessToken", accessToken, cookieOptions)
         .cookie("refreshToken", refreshToken, cookieOptions)
-        .redirect(frontendURL);
+        .redirect(FRONTEND_URL);
 });
 // ========================
 // RESEND EMAIL VERIFICATION
@@ -432,7 +435,7 @@ const resendEmailVerification = asyncHandler(async (req, res) => {
     await user.save({ validateBeforeSave: false });
 
     // Construct verification link
-    const verificationUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/verify-email/${unHashedToken}`;
+    const verificationUrl = `${FRONTEND_URL}/verify-email/${unHashedToken}`;
 
     // Send email using Resend
     await sendMail({
@@ -521,7 +524,7 @@ const changeEmail = asyncHandler(async (req, res) => {
     await user.save({ validateBeforeSave: false });
 
     // Send verification email to the NEW email
-    const verificationUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/verify-email/${unHashedToken}`;
+    const verificationUrl = `${FRONTEND_URL}/verify-email/${unHashedToken}`;
 
     await sendMail({
         email: normalizedEmail,

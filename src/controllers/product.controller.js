@@ -1,31 +1,28 @@
-import cloudinary from "cloudinary";
+import { v2 as cloudinary } from "cloudinary";
 import { Product } from "../models/product.model.js";
 import { ApiError } from "../utils/api-error.js";
 import { ApiResponse } from "../utils/api-response.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import { normalizeProductCategory } from "../utils/product-catalog.js";
 
-export const getUploadSignature = async (req, res) => {
-  try {
-    const timestamp = Math.round(Date.now() / 1000);
-    const signature = cloudinary.utils.api_sign_request(
-  {
-    timestamp,
-    folder: "ellegancesuit/products",
-  },
-      process.env.CLOUDINARY_API_SECRET
-    );
-
-    res.status(200).json({
+export const getUploadSignature = asyncHandler(async (_req, res) => {
+  const timestamp = Math.round(Date.now() / 1000);
+  const signature = cloudinary.utils.api_sign_request(
+    {
       timestamp,
-      signature,
-      cloudName: process.env.CLOUDINARY_CLOUD_NAME,
-      apiKey: process.env.CLOUDINARY_API_KEY,
-    });
-  } catch (err) {
-    res.status(500).json({ message: "Failed to generate signature", error: err.message });
-  }
-};
+      folder: "ellegancesuit/products",
+    },
+    process.env.CLOUDINARY_API_SECRET
+  );
+
+  res.set("Cache-Control", "no-store");
+  return res.status(200).json({
+    timestamp,
+    signature,
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+    apiKey: process.env.CLOUDINARY_API_KEY,
+  });
+});
 
 const normaliseProductPayload = (body = {}) => {
   const images = Array.isArray(body.images)
@@ -38,7 +35,7 @@ const normaliseProductPayload = (body = {}) => {
   const payload = {
     productName: body.productName?.trim(),
     category,
-    description: body.description?.trim(),
+    description: body.description?.trim() || `${body.productName?.trim() || "Product"} - ${category || "fashion"} collection.`,
     url,
     images,
     price: Number(body.price),

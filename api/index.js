@@ -25,6 +25,22 @@ import { cloudinaryConnect } from "../src/config/cloudinary.config.js";
 
 const app = express();
 
+const allowedOrigins = new Set([
+    "http://localhost:3000",
+    "https://ellegancesuit.vercel.app",
+    "https://vastrafrontend.vercel.app",
+    process.env.FRONTEND_URL?.replace(/\/+$/, ""),
+].filter(Boolean));
+
+app.use(cors({
+    origin: (origin, callback) => {
+        callback(null, !origin || allowedOrigins.has(origin));
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin", "Cookie", "X-Access-Token"],
+}));
+
 let connectionsPromise;
 const ensureConnections = () => {
     if (!connectionsPromise) {
@@ -51,12 +67,6 @@ app.use(async (req, res, next) => {
 });
 
 // 4. Global Middlewares
-app.use(cors({
-    origin: ["http://localhost:3000", "https://ellegancesuit.vercel.app"],
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin", "Cookie", "X-Access-Token"],
-}));
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(cookieParser());
